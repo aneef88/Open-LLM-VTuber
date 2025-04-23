@@ -300,6 +300,24 @@ class SherpaOnnxTTSConfig(I18nMixin):
         "debug": Description(en="Enable debug mode", zh="启用调试模式"),
     }
 
+class AllTalkTTSConfig(I18nMixin):
+    """Configuration for AllTalk TTS."""
+    api_url: str = Field(..., alias="api_url")
+    model: str = Field(..., alias="model")
+    voice: str = Field(..., alias="voice")
+    response_format: str = Field(..., alias="response_format")
+    speed: float = Field(..., alias="speed")
+
+    DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
+        "api_url": Description(
+            en="AllTalk API endpoint (OpenAI-compatible)",
+            zh="AllTalk API 端点 (兼容 OpenAI 格式)"
+        ),
+        "model": Description(en="Model name (arbitrary placeholder)", zh="模型名称 (任意占位)"),
+        "voice": Description(en="Voice name (e.g. nova, shimmer)", zh="语音名称 (如 nova, shimmer)"),
+        "response_format": Description(en="Audio format (wav, mp3)", zh="音频格式 (wav, mp3)"),
+        "speed": Description(en="Speech speed multiplier", zh="语速倍数"),
+    }
 
 class TTSConfig(I18nMixin):
     """Configuration for Text-to-Speech."""
@@ -316,6 +334,7 @@ class TTSConfig(I18nMixin):
         "gpt_sovits_tts",
         "fish_api_tts",
         "sherpa_onnx_tts",
+        "alltalk_tts",
     ] = Field(..., alias="tts_model")
 
     azure_tts: Optional[AzureTTSConfig] = Field(None, alias="azure_tts")
@@ -328,9 +347,8 @@ class TTSConfig(I18nMixin):
     x_tts: Optional[XTTSConfig] = Field(None, alias="x_tts")
     gpt_sovits_tts: Optional[GPTSoVITSConfig] = Field(None, alias="gpt_sovits")
     fish_api_tts: Optional[FishAPITTSConfig] = Field(None, alias="fish_api_tts")
-    sherpa_onnx_tts: Optional[SherpaOnnxTTSConfig] = Field(
-        None, alias="sherpa_onnx_tts"
-    )
+    sherpa_onnx_tts: Optional[SherpaOnnxTTSConfig] = Field(None, alias="sherpa_onnx_tts")
+    alltalk_tts: Optional[AllTalkTTSConfig] = Field(None, alias="alltalk_tts")
 
     DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
         "tts_model": Description(
@@ -339,24 +357,15 @@ class TTSConfig(I18nMixin):
         "azure_tts": Description(en="Configuration for Azure TTS", zh="Azure TTS 配置"),
         "bark_tts": Description(en="Configuration for Bark TTS", zh="Bark TTS 配置"),
         "edge_tts": Description(en="Configuration for Edge TTS", zh="Edge TTS 配置"),
-        "cosyvoice_tts": Description(
-            en="Configuration for Cosyvoice TTS", zh="Cosyvoice TTS 配置"
-        ),
-        "cosyvoice2_tts": Description(
-            en="Configuration for Cosyvoice2 TTS", zh="Cosyvoice2 TTS 配置"
-        ),
+        "cosyvoice_tts": Description(en="Configuration for Cosyvoice TTS", zh="Cosyvoice TTS 配置"),
+        "cosyvoice2_tts": Description(en="Configuration for Cosyvoice2 TTS", zh="Cosyvoice2 TTS 配置"),
         "melo_tts": Description(en="Configuration for Melo TTS", zh="Melo TTS 配置"),
         "coqui_tts": Description(en="Configuration for Coqui TTS", zh="Coqui TTS 配置"),
         "x_tts": Description(en="Configuration for XTTS", zh="XTTS 配置"),
-        "gpt_sovits_tts": Description(
-            en="Configuration for GPT-SoVITS", zh="GPT-SoVITS 配置"
-        ),
-        "fish_api_tts": Description(
-            en="Configuration for Fish API TTS", zh="Fish API TTS 配置"
-        ),
-        "sherpa_onnx_tts": Description(
-            en="Configuration for Sherpa Onnx TTS", zh="Sherpa Onnx TTS 配置"
-        ),
+        "gpt_sovits_tts": Description(en="Configuration for GPT-SoVITS", zh="GPT-SoVITS 配置"),
+        "fish_api_tts": Description(en="Configuration for Fish API TTS", zh="Fish API TTS 配置"),
+        "sherpa_onnx_tts": Description(en="Configuration for Sherpa Onnx TTS", zh="Sherpa Onnx TTS 配置"),
+        "alltalk_tts": Description(en="Configuration for AllTalk TTS", zh="AllTalk TTS 配置"),
     }
 
     @model_validator(mode="after")
@@ -386,5 +395,7 @@ class TTSConfig(I18nMixin):
             values.fish_api_tts.model_validate(values.fish_api_tts.model_dump())
         elif tts_model == "sherpa_onnx_tts" and values.sherpa_onnx_tts is not None:
             values.sherpa_onnx_tts.model_validate(values.sherpa_onnx_tts.model_dump())
+        elif tts_model == "alltalk_tts" and values.alltalk_tts is not None:
+            values.alltalk_tts.model_validate(values.alltalk_tts.model_dump())
 
         return values
