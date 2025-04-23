@@ -113,6 +113,17 @@ class TTSFactory:
 
             return SherpaOnnxTTSEngine(**kwargs)
 
+        elif engine_type == "alltalk_tts":
+            from .alltalk_tts import TTSEngine as AllTalkTTSEngine
+
+            return AllTalkTTSEngine(
+                    api_url=kwargs.get("api_url"),
+                    model=kwargs.get("model"),
+                    voice=kwargs.get("voice"),
+                    response_format=kwargs.get("response_format"),
+                    speed=kwargs.get("speed"),
+                )
+
         else:
             raise ValueError(f"Unknown TTS engine type: {engine_type}")
 

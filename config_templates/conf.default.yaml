@@ -48,7 +48,7 @@ character_config:
         # 'openai_compatible_llm', 'llama_cpp_llm', 'claude_llm', 'ollama_llm'
         # 'openai_llm', 'gemini_llm', 'zhipu_llm', 'deepseek_llm', 'groq_llm'
         # 'mistral_llm'
-        llm_provider: 'ollama_llm'
+        llm_provider: 'openai_compatible_llm'
         # let ai speak as soon as the first comma is received on the first sentence
         # to reduced latency.
         faster_first_response: True
@@ -95,11 +95,11 @@ character_config:
 
       # OpenAI Compatible inference backend
       openai_compatible_llm:
-        base_url: 'http://localhost:11434/v1'
-        llm_api_key: 'somethingelse'
-        organization_id: 'org_eternity'
-        project_id: 'project_glass'
-        model: 'qwen2.5:latest'
+        base_url: 'http://localhost:5001/v1'
+        llm_api_key: 'placeholder'
+        organization_id: ''
+        project_id: ''
+        model: ''
         temperature: 1.0 # value between 0 to 2
         interrupt_method: 'user'
         # This is the method to use for prompting the interruption signal. 
@@ -251,11 +251,11 @@ character_config:
 
   # =================== Text to Speech ===================
   tts_config:
-    tts_model: 'edge_tts'
+    tts_model: 'alltalk_tts'
     # text to speech model options:
     #   'azure_tts', 'pyttsx3_tts', 'edge_tts', 'bark_tts',
-    #   'cosyvoice_tts', 'melo_tts', 'coqui_tts',
-    #   'fish_api_tts', 'x_tts', 'gpt_sovits_tts', 'sherpa_onnx_tts'
+    #   'cosyvoice_tts', 'melo_tts', 'coqui_tts', 'fish_api_tts'
+    #   'x_tts', 'gpt_sovits_tts', 'sherpa_onnx_tts', 'alltalk_tts'
 
     azure_tts:
       api_key: 'azure-api-key'
@@ -362,6 +362,13 @@ character_config:
       num_threads: 1 # Number of computation threads
       speed: 1.0 # Speech speed (1.0 is normal)
       debug: false # Enable debug mode (True/False)
+
+    alltalk_tts:
+      api_url: 'http://127.0.0.1:7851/v1/audio/speech'
+      model: 'ignored' # AllTalk requires it, but doesn't enforce naming
+      voice: 'nova' # OpenAI Compatible API model
+      response_format: 'wav' # Audio output type
+      speed: 1.0 # Speech speed (1.0 is normal)
 
 
   # =================== Voice Activity Detection ===================
