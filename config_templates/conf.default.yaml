@@ -364,11 +364,13 @@ character_config:
       debug: false # Enable debug mode (True/False)
 
     alltalk_tts:
-      api_url: 'http://127.0.0.1:7851/v1/audio/speech'
+      api_url: 'http://127.0.0.1:7851/v1/audio/speech' # Open AI Compatible API URL for Generating Audio chunks
+      stream_api_url: 'http://127.0.0.1:7851/api/tts-generate-streaming' # AllTalk TTS API URL for audio streaming
       model: 'ignored' # AllTalk requires it, but doesn't enforce naming
-      voice: 'nova' # OpenAI Compatible API model
+      voice: 'female_01.wav' # OpenAI Compatible API model use 'nova' for generated chunk audio, 'female_01.wav' for streaming.
       response_format: 'wav' # Audio output type
       speed: 1.0 # Speech speed (1.0 is normal)
+      use_streaming: true # Toggle between streaming or generating saved audio chunks.
 
 
   # =================== Voice Activity Detection ===================

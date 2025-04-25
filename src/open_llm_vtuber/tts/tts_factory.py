@@ -1,10 +1,13 @@
 from typing import Type
+from loguru import logger
 from .tts_interface import TTSInterface
 
 
 class TTSFactory:
     @staticmethod
     def get_tts_engine(engine_type, **kwargs) -> Type[TTSInterface]:
+        logger.debug(f"Initializing TTS engine: {engine_type} with kwargs: {kwargs}")
+
         if engine_type == "azure_tts":
             from .azure_tts import TTSEngine as AzureTTSEngine
 
@@ -117,12 +120,14 @@ class TTSFactory:
             from .alltalk_tts import TTSEngine as AllTalkTTSEngine
 
             return AllTalkTTSEngine(
-                    api_url=kwargs.get("api_url"),
-                    model=kwargs.get("model"),
-                    voice=kwargs.get("voice"),
-                    response_format=kwargs.get("response_format"),
-                    speed=kwargs.get("speed"),
-                )
+                api_url=kwargs.get("api_url"),
+                model=kwargs.get("model"),
+                voice=kwargs.get("voice"),
+                response_format=kwargs.get("response_format"),
+                speed=kwargs.get("speed"),
+                stream_api_url=kwargs.get("stream_api_url"),
+                use_streaming=kwargs.get("use_streaming", False),
+            )
 
         else:
             raise ValueError(f"Unknown TTS engine type: {engine_type}")

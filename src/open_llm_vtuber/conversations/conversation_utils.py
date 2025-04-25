@@ -1,5 +1,7 @@
-import asyncio
+﻿import asyncio
 import re
+import uuid
+from datetime import datetime
 from typing import Optional, Union, Any, List, Dict
 import numpy as np
 import json
@@ -99,6 +101,7 @@ async def handle_sentence_output(
         else:
             logger.debug("🚫 No translation engine available. Skipping translation.")
 
+        is_streaming = getattr(tts_engine, "use_streaming", False)
         full_response += display_text.text
         await tts_manager.speak(
             tts_text=tts_text,
@@ -107,6 +110,7 @@ async def handle_sentence_output(
             live2d_model=live2d_model,
             tts_engine=tts_engine,
             websocket_send=websocket_send,
+            skip_audio=is_streaming,
         )
     return full_response
 

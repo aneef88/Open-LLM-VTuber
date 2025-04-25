@@ -303,20 +303,21 @@ class SherpaOnnxTTSConfig(I18nMixin):
 class AllTalkTTSConfig(I18nMixin):
     """Configuration for AllTalk TTS."""
     api_url: str = Field(..., alias="api_url")
+    stream_api_url: str = Field(..., alias="stream_api_url")
     model: str = Field(..., alias="model")
     voice: str = Field(..., alias="voice")
     response_format: str = Field(..., alias="response_format")
     speed: float = Field(..., alias="speed")
+    use_streaming: bool = Field(False, alias="use_streaming")
 
     DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
-        "api_url": Description(
-            en="AllTalk API endpoint (OpenAI-compatible)",
-            zh="AllTalk API 端点 (兼容 OpenAI 格式)"
-        ),
+        "api_url": Description(en="AllTalk API endpoint (OpenAI-compatible)", zh="AllTalk API 端点 (兼容 OpenAI 格式)"),
+        "stream_api_url": Description(en="AllTalk endpoint for streaming audio", zh="AllTalk API 音频流式传输端点"),
         "model": Description(en="Model name (arbitrary placeholder)", zh="模型名称 (任意占位)"),
         "voice": Description(en="Voice name (e.g. nova, shimmer)", zh="语音名称 (如 nova, shimmer)"),
         "response_format": Description(en="Audio format (wav, mp3)", zh="音频格式 (wav, mp3)"),
         "speed": Description(en="Speech speed multiplier", zh="语速倍数"),
+        "use_streaming": Description(en="Enable audio streaming instead of generating complete files.", zh="启用音频流式传输，而不是生成完整文件。"),
     }
 
 class TTSConfig(I18nMixin):

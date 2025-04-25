@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import json
 import re
 import uuid
@@ -11,6 +11,7 @@ from ..live2d_model import Live2dModel
 from ..tts.tts_interface import TTSInterface
 from ..utils.stream_audio import prepare_audio_payload
 from .types import WebSocketSend
+from .serialization_utils import serialize_display_text
 
 
 class TTSTaskManager:
@@ -35,6 +36,7 @@ class TTSTaskManager:
         live2d_model: Live2dModel,
         tts_engine: TTSInterface,
         websocket_send: WebSocketSend,
+        skip_audio: bool = False,
     ) -> None:
         """
         Queue a TTS task while maintaining order of delivery.
@@ -47,24 +49,10 @@ class TTSTaskManager:
             tts_engine: TTS engine instance
             websocket_send: WebSocket send function
         """
-        if len(re.sub(r'[\s.,!?，。！？\'"』」）】\s]+', "", tts_text)) == 0:
-            logger.debug("Empty TTS text, sending silent display payload")
-            # Get current sequence number for silent payload
-            current_sequence = self._sequence_counter
-            self._sequence_counter += 1
-
-            # Start sender task if not running
-            if not self._sender_task or self._sender_task.done():
-                self._sender_task = asyncio.create_task(
-                    self._process_payload_queue(websocket_send)
-                )
-
-            await self._send_silent_payload(display_text, actions, current_sequence)
-            return
-
-        logger.debug(
-            f"🏃Queuing TTS task for: '''{tts_text}''' (by {display_text.name})"
-        )
+        # Enable streaming if supported by engine config
+        if getattr(tts_engine, "use_streaming", False):
+            logger.debug("Streaming mode detected in TTS engine, skipping audio file generation.")
+            skip_audio = True
 
         # Get current sequence number
         current_sequence = self._sequence_counter
@@ -75,6 +63,26 @@ class TTSTaskManager:
             self._sender_task = asyncio.create_task(
                 self._process_payload_queue(websocket_send)
             )
+
+        if skip_audio:
+            logger.debug("🔇 Skipping audio synthesis (streaming assumed)")
+            payload = {
+                "type": "audio",
+                "stream_url": tts_engine.stream_audio(tts_text),
+                "display_text": serialize_display_text(display_text),
+                "actions": serialize_display_text(actions) if actions else None,
+            }
+            await self._payload_queue.put((payload, current_sequence))
+            return
+
+        if len(re.sub(r'[\s.,!?，。！？\'"』」）】\s]+', "", tts_text)) == 0:
+            logger.debug("Empty TTS text, sending silent display payload")
+            await self._send_silent_payload(display_text, actions, current_sequence)
+            return
+
+        logger.debug(
+            f"🏃Queuing TTS task for: '''{tts_text}''' (by {display_text.name})"
+        )
 
         # Create and queue the TTS task
         task = asyncio.create_task(
@@ -140,11 +148,40 @@ class TTSTaskManager:
         audio_file_path = None
         try:
             audio_file_path = await self._generate_audio(tts_engine, tts_text)
-            payload = prepare_audio_payload(
-                audio_path=audio_file_path,
-                display_text=display_text,
-                actions=actions,
-            )
+
+            def serialize_display_text(display_text):
+                try:
+                    if hasattr(display_text, "__dict__"):
+                        return vars(display_text)
+                    elif hasattr(display_text, "dict"):
+                        return display_text.dict()
+                    else:
+                        return str(display_text)
+                except Exception:
+                    return str(display_text)
+
+            # Then in your logic:
+            if audio_file_path and audio_file_path.startswith("http"):
+                # Streaming payload
+                logger.debug("📡 Queued streaming payload.")
+
+                display_payload = serialize_display_text(display_text)
+
+                payload = {
+                    "stream_url": audio_file_path,
+                    "display_text": display_payload,
+                    "actions": actions.dict() if actions else None,
+                }
+
+            else:
+                # File-based payload
+                logger.debug("💾 Queued file-based payload.")
+                payload = prepare_audio_payload(
+                    audio_path=audio_file_path,
+                    display_text=display_text,
+                    actions=actions,
+                )
+
             # Queue the payload with its sequence number
             await self._payload_queue.put((payload, sequence_number))
 
@@ -159,7 +196,7 @@ class TTSTaskManager:
             await self._payload_queue.put((payload, sequence_number))
 
         finally:
-            if audio_file_path:
+            if audio_file_path and not audio_file_path.startswith("http"):
                 tts_engine.remove_file(audio_file_path)
                 logger.debug("Audio cache file cleaned.")
 

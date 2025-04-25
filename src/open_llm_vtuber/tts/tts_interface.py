@@ -6,6 +6,9 @@ from loguru import logger
 
 
 class TTSInterface(metaclass=abc.ABCMeta):
+    def __init__(self, use_streaming: bool = False):
+        self.use_streaming = use_streaming
+
     async def async_generate_audio(self, text: str, file_name_no_ext=None) -> str:
         """
         Asynchronously generate speech audio file using TTS.
@@ -38,6 +41,15 @@ class TTSInterface(metaclass=abc.ABCMeta):
 
         """
         raise NotImplementedError
+
+    def stream_audio(self, text: str) -> str:
+        """
+        Optionally implemented by engines that support streaming.
+
+        Returns:
+            str: URL or stream source
+        """
+        raise NotImplementedError("stream_audio is not supported by this engine.")
 
     def remove_file(self, filepath: str, verbose: bool = True) -> None:
         """

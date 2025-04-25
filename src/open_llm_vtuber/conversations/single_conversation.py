@@ -86,6 +86,21 @@ async def process_single_conversation(
             await asyncio.gather(*tts_manager.task_list)
             await websocket_send(json.dumps({"type": "backend-synth-complete"}))
 
+        # If streaming, also send stream URL directly
+        is_streaming = getattr(context.tts_engine, "use_streaming", False)
+        if is_streaming:
+            stream_url = context.tts_engine.generate_audio(full_response)
+            await websocket_send(json.dumps({
+                "type": "llm_response",
+                "text": full_response,
+                "audio_url": stream_url,
+            }))
+        else:
+            await websocket_send(json.dumps({
+                "type": "llm_response",
+                "text": full_response,
+            }))
+
         await finalize_conversation_turn(
             tts_manager=tts_manager,
             websocket_send=websocket_send,

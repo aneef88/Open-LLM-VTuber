@@ -176,10 +176,23 @@ class ServiceContext:
     def init_tts(self, tts_config: TTSConfig) -> None:
         if not self.tts_engine or (self.character_config.tts_config != tts_config):
             logger.info(f"Initializing TTS: {tts_config.tts_model}")
+
+            # Get the specific config object for the chosen model
+            tts_model_config = getattr(tts_config, tts_config.tts_model.lower())
+            tts_engine_kwargs = tts_model_config.model_dump()
+
+            #check the value specifically for alltalk
+            if tts_config.tts_model == "alltalk_tts":
+                use_streaming_value = tts_engine_kwargs.get("use_streaming", "NOT FOUND")
+                logger.info(f"ServiceContext: Passing 'use_streaming={use_streaming_value}' (type: {type(use_streaming_value)}) to Alltalk factory.")
+
+            logger.debug(f"TTS kwargs passed to engine: {tts_engine_kwargs}")
+
             self.tts_engine = TTSFactory.get_tts_engine(
                 tts_config.tts_model,
-                **getattr(tts_config, tts_config.tts_model.lower()).model_dump(),
+                **tts_engine_kwargs,
             )
+
             # saving config should be done after successful initialization
             self.character_config.tts_config = tts_config
         else:
