@@ -117,12 +117,27 @@ class TTSFactory:
             from .alltalk_tts import TTSEngine as AllTalkTTSEngine
 
             return AllTalkTTSEngine(
-                    api_url=kwargs.get("api_url"),
-                    model=kwargs.get("model"),
-                    voice=kwargs.get("voice"),
-                    response_format=kwargs.get("response_format"),
-                    speed=kwargs.get("speed"),
-                )
+                api_url=kwargs.get("api_url"),
+                model=kwargs.get("model"),
+                voice=kwargs.get("voice"),
+                response_format=kwargs.get("response_format"),
+                speed=kwargs.get("speed"),
+            )
+
+        elif engine_type == "dia_tts":
+            from .dia_tts import TTSEngine as DiaTTSEngine
+
+            return DiaTTSEngine(
+                server_url=kwargs.get("server_url"),
+                prompt_id=kwargs.get("prompt_id"),
+                max_new_tokens=kwargs.get("max_new_tokens"),
+                cfg_scale=kwargs.get("cfg_scale"),
+                temperature=kwargs.get("temperature"),
+                top_p=kwargs.get("top_p"),
+                cfg_filter_top_k=kwargs.get("cfg_filter_top_k"),
+                speed_factor=kwargs.get("speed_factor"),
+                seed=kwargs.get("seed")
+            )
 
         else:
             raise ValueError(f"Unknown TTS engine type: {engine_type}")

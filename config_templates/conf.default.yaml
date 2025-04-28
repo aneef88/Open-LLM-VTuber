@@ -251,11 +251,12 @@ character_config:
 
   # =================== Text to Speech ===================
   tts_config:
-    tts_model: 'alltalk_tts'
+    tts_model: 'dia_tts'
     # text to speech model options:
     #   'azure_tts', 'pyttsx3_tts', 'edge_tts', 'bark_tts',
     #   'cosyvoice_tts', 'melo_tts', 'coqui_tts', 'fish_api_tts'
-    #   'x_tts', 'gpt_sovits_tts', 'sherpa_onnx_tts', 'alltalk_tts'
+    #   'x_tts', 'gpt_sovits_tts', 'sherpa_onnx_tts', 'alltalk_tts',
+    #   'dia_tts'
 
     azure_tts:
       api_key: 'azure-api-key'
@@ -369,6 +370,18 @@ character_config:
       voice: 'nova' # OpenAI Compatible API model
       response_format: 'wav' # Audio output type
       speed: 1.0 # Speech speed (1.0 is normal)
+
+    dia_tts:
+      server_url: 'http://localhost:8210/tts' # URL of the FastAPI server
+      prompt_id: 'example_prompt'
+      # Leave paramater as 'null' or omit it entirely to use the server's default value.
+      max_new_tokens: null # Server default: 3072
+      cfg_scale: null # Server default: 3.0
+      temperature: null # Server default: 1.3
+      top_p: null # Server default: 0.95
+      cfg_filter_top_k: null # Server default: 30
+      speed_factor: null # Server default: 1.0
+      seed: 1234 # Server default: null (random)
 
 
   # =================== Voice Activity Detection ===================

@@ -319,6 +319,57 @@ class AllTalkTTSConfig(I18nMixin):
         "speed": Description(en="Speech speed multiplier", zh="语速倍数"),
     }
 
+class DiaTTSConfig(I18nMixin):
+    """Configuration for Dia TTS."""
+    server_url: str = Field("http://localhost:8210/tts", alias="server_url")
+    prompt_id: Optional[str] = Field(None, alias="prompt_id")
+    max_new_tokens: Optional[int] = Field(None, alias="max_new_tokens")
+    cfg_scale: Optional[float] = Field(None, alias="cfg_scale")
+    temperature: Optional[float] = Field(None, alias="temperature")
+    top_p: Optional[float] = Field(None, alias="top_p")
+    cfg_filter_top_k: Optional[int] = Field(None, alias="cfg_filter_top_k")
+    speed_factor: Optional[float] = Field(None, alias="speed_factor")
+    seed: Optional[int] = Field(None, alias="seed")
+
+    DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
+        "server_url": Description(
+            en="URL of the running Nari/Dia FastAPI TTS server.",
+            zh="运行中的 Nari/Dia FastAPI TTS 服务器的 URL。"
+        ),
+        "prompt_id": Description(
+            en="Default prompt_id (base filename) to use. Leave empty/null to use server's default.",
+            zh="要使用的默认 prompt_id（基本文件名）。留空/null 以使用服务器的默认值。"
+        ),
+        "max_new_tokens": Description(
+            en="Override server default: Max new audio tokens.",
+            zh="覆盖服务器默认值：最大新音频令牌数。"
+        ),
+        "cfg_scale": Description(
+            en="Override server default: CFG scale.",
+            zh="覆盖服务器默认值：CFG 比例。"
+        ),
+        "temperature": Description(
+            en="Override server default: Sampling temperature.",
+            zh="覆盖服务器默认值：采样温度。"
+        ),
+        "top_p": Description(
+            en="Override server default: Nucleus sampling p.",
+            zh="覆盖服务器默认值：核心采样 p。"
+        ),
+        "cfg_filter_top_k": Description(
+            en="Override server default: CFG filter top K.",
+            zh="覆盖服务器默认值：CFG 过滤器 top K。"
+        ),
+        "speed_factor": Description(
+            en="Override server default: Audio speed factor.",
+            zh="覆盖服务器默认值：音频速度因子。"
+        ),
+        "seed": Description(
+            en="Override server default: Random seed (null for random).",
+            zh="覆盖服务器默认值：随机种子（null 表示随机）。"
+        ),
+    }
+
 class TTSConfig(I18nMixin):
     """Configuration for Text-to-Speech."""
 
@@ -335,6 +386,7 @@ class TTSConfig(I18nMixin):
         "fish_api_tts",
         "sherpa_onnx_tts",
         "alltalk_tts",
+        "dia_tts",
     ] = Field(..., alias="tts_model")
 
     azure_tts: Optional[AzureTTSConfig] = Field(None, alias="azure_tts")
@@ -349,6 +401,7 @@ class TTSConfig(I18nMixin):
     fish_api_tts: Optional[FishAPITTSConfig] = Field(None, alias="fish_api_tts")
     sherpa_onnx_tts: Optional[SherpaOnnxTTSConfig] = Field(None, alias="sherpa_onnx_tts")
     alltalk_tts: Optional[AllTalkTTSConfig] = Field(None, alias="alltalk_tts")
+    dia_tts: Optional[DiaTTSConfig] = Field(None, alias="dia_tts")
 
     DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
         "tts_model": Description(
@@ -366,6 +419,7 @@ class TTSConfig(I18nMixin):
         "fish_api_tts": Description(en="Configuration for Fish API TTS", zh="Fish API TTS 配置"),
         "sherpa_onnx_tts": Description(en="Configuration for Sherpa Onnx TTS", zh="Sherpa Onnx TTS 配置"),
         "alltalk_tts": Description(en="Configuration for AllTalk TTS", zh="AllTalk TTS 配置"),
+        "dia_tts": Description(en="Configuration for Dia TTS", zh="Dia TTS 配置"),
     }
 
     @model_validator(mode="after")
@@ -397,5 +451,7 @@ class TTSConfig(I18nMixin):
             values.sherpa_onnx_tts.model_validate(values.sherpa_onnx_tts.model_dump())
         elif tts_model == "alltalk_tts" and values.alltalk_tts is not None:
             values.alltalk_tts.model_validate(values.alltalk_tts.model_dump())
+        elif tts_model == "dia_tts" and values.dia_tts is not None:
+            values.dia_tts.model_validate(values.dia_tts.model_dump())
 
         return values
