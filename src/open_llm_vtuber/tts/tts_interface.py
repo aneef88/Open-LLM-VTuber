@@ -3,6 +3,7 @@ import os
 import asyncio
 
 from loguru import logger
+from typing import AsyncGenerator
 
 
 class TTSInterface(metaclass=abc.ABCMeta):
@@ -23,6 +24,17 @@ class TTSInterface(metaclass=abc.ABCMeta):
 
         """
         return await asyncio.to_thread(self.generate_audio, text, file_name_no_ext)
+
+    @abc.abstractmethod
+    async def async_generate_audio_stream(
+        self, text: str, file_name_no_ext: str
+    ) -> AsyncGenerator[bytes, None]:
+        """
+        Stream chunks of synthesized audio for the input text.
+        If not supported, this method should raise NotImplementedError.
+        Yields raw audio chunks (WAV/PCM).
+        """
+        raise NotImplementedError("This TTS engine does not support streaming.")
 
     @abc.abstractmethod
     def generate_audio(self, text: str, file_name_no_ext=None) -> str:

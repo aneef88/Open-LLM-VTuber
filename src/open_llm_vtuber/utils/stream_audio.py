@@ -1,4 +1,5 @@
 import base64
+import io
 from pydub import AudioSegment
 from pydub.utils import make_chunks
 from ..agent.output_types import Actions
@@ -26,6 +27,7 @@ def _get_volume_by_chunks(audio: AudioSegment, chunk_length_ms: int) -> list:
 
 def prepare_audio_payload(
     audio_path: str | None,
+    audio_bytes: bytes | None = None,
     chunk_length_ms: int = 20,
     display_text: DisplayText = None,
     actions: Actions = None,
@@ -47,7 +49,7 @@ def prepare_audio_payload(
     if isinstance(display_text, DisplayText):
         display_text = display_text.to_dict()
 
-    if not audio_path:
+    if not audio_path and audio_bytes is None:
         # Return payload for silent display
         return {
             "type": "audio",
@@ -59,17 +61,20 @@ def prepare_audio_payload(
             "forwarded": forwarded,
         }
 
-    try:
-        audio = AudioSegment.from_file(audio_path)
-        audio_bytes = audio.export(format="wav").read()
-    except Exception as e:
-        raise ValueError(
-            f"Error loading or converting generated audio file to wav file '{audio_path}': {e}"
-        )
-    audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
-    volumes = _get_volume_by_chunks(audio, chunk_length_ms)
+    if audio_bytes is not None:
+        audio = AudioSegment.from_file(io.BytesIO(audio_bytes), format="wav")
+        audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+        volumes = _get_volume_by_chunks(audio, chunk_length_ms=chunk_length_ms)
+    else:
+        try:
+            audio = AudioSegment.from_file(audio_path)
+            audio_bytes = audio.export(format="wav").read()
+        except Exception as e:
+            raise ValueError(f"Error loading or converting generated audio file to wav file '{audio_path}': {e}")
+        audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+        volumes = _get_volume_by_chunks(audio, chunk_length_ms)
 
-    payload = {
+    return {
         "type": "audio",
         "audio": audio_base64,
         "volumes": volumes,
@@ -78,9 +83,6 @@ def prepare_audio_payload(
         "actions": actions.to_dict() if actions else None,
         "forwarded": forwarded,
     }
-
-    return payload
-
 
 # Example usage:
 # payload, duration = prepare_audio_payload("path/to/audio.mp3", display_text="Hello", expression_list=[0,1,2])

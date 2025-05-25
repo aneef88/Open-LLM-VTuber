@@ -118,10 +118,12 @@ class TTSFactory:
 
             return AllTalkTTSEngine(
                     api_url=kwargs.get("api_url"),
+                    streaming_api_url=kwargs.get("streaming_api_url"),
                     model=kwargs.get("model"),
                     voice=kwargs.get("voice"),
                     response_format=kwargs.get("response_format"),
                     speed=kwargs.get("speed"),
+                    stream=kwargs.get("stream", False),
                 )
 
         else:

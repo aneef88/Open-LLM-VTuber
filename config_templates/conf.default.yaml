@@ -252,6 +252,7 @@ character_config:
   # =================== Text to Speech ===================
   tts_config:
     tts_model: 'alltalk_tts'
+    stream: false # Set to true for streaming, false for non-streaming
     # text to speech model options:
     #   'azure_tts', 'pyttsx3_tts', 'edge_tts', 'bark_tts',
     #   'cosyvoice_tts', 'melo_tts', 'coqui_tts', 'fish_api_tts'
@@ -365,7 +366,8 @@ character_config:
 
     alltalk_tts:
       api_url: 'http://127.0.0.1:7851/v1/audio/speech'
-      model: 'ignored' # AllTalk requires it, but doesn't enforce naming
+      streaming_api_url: 'http://127.0.0.1:7851/api/tts-generate-streaming'
+      model: 'ignored' # Required by AllTalk but not used
       voice: 'nova' # OpenAI Compatible API model
       response_format: 'wav' # Audio output type
       speed: 1.0 # Speech speed (1.0 is normal)

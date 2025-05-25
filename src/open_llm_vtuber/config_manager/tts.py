@@ -303,6 +303,7 @@ class SherpaOnnxTTSConfig(I18nMixin):
 class AllTalkTTSConfig(I18nMixin):
     """Configuration for AllTalk TTS."""
     api_url: str = Field(..., alias="api_url")
+    streaming_api_url: str = Field(..., alias="streaming_api_url")
     model: str = Field(..., alias="model")
     voice: str = Field(..., alias="voice")
     response_format: str = Field(..., alias="response_format")
@@ -336,6 +337,8 @@ class TTSConfig(I18nMixin):
         "sherpa_onnx_tts",
         "alltalk_tts",
     ] = Field(..., alias="tts_model")
+
+    stream: bool = Field(False, alias="stream")
 
     azure_tts: Optional[AzureTTSConfig] = Field(None, alias="azure_tts")
     bark_tts: Optional[BarkTTSConfig] = Field(None, alias="bark_tts")

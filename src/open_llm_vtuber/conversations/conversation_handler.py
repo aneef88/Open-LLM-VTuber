@@ -49,9 +49,11 @@ async def handle_conversation_trigger(
     session_emoji = np.random.choice(EMOJI_LIST)
 
     group = chat_group_manager.get_client_group(client_uid)
+    logger.debug(f"GROUP STATE: group={group}, members={group.members if group else 'N/A'}")
     if group and len(group.members) > 1:
         # Use group_id as task key for group conversations
         task_key = group.group_id
+        logger.debug(f"Scheduling group conversation for {group.group_id} with members {group.members}")
         if (
             task_key not in current_conversation_tasks
             or current_conversation_tasks[task_key].done()
@@ -71,17 +73,23 @@ async def handle_conversation_trigger(
                 )
             )
     else:
-        # Use client_uid as task key for individual conversations
-        current_conversation_tasks[client_uid] = asyncio.create_task(
-            process_single_conversation(
-                context=context,
-                websocket_send=websocket.send_text,
-                client_uid=client_uid,
-                user_input=user_input,
-                images=images,
-                session_emoji=session_emoji,
+        # Individual conversation path
+        logger.debug(f"Scheduling single conversation for {client_uid}")
+        if (
+            client_uid not in current_conversation_tasks
+            or current_conversation_tasks[client_uid].done()
+        ):
+            logger.info(f"Starting new single conversation for {client_uid}")
+            current_conversation_tasks[client_uid] = asyncio.create_task(
+                process_single_conversation(
+                    context=context,
+                    websocket_send=websocket.send_text,
+                    client_uid=client_uid,
+                    user_input=user_input,
+                    images=images,
+                    session_emoji=session_emoji,
+                )
             )
-        )
 
 
 async def handle_individual_interrupt(

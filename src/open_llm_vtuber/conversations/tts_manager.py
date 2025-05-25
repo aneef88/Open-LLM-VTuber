@@ -16,7 +16,7 @@ from .types import WebSocketSend
 class TTSTaskManager:
     """Manages TTS tasks and ensures ordered delivery to frontend while allowing parallel TTS generation"""
 
-    def __init__(self) -> None:
+    def __init__(self, stream_tts: bool = False) -> None:
         self.task_list: List[asyncio.Task] = []
         self._lock = asyncio.Lock()
         # Queue to store ordered payloads
@@ -26,6 +26,7 @@ class TTSTaskManager:
         # Counter for maintaining order
         self._sequence_counter = 0
         self._next_sequence_to_send = 0
+        self.stream_tts = stream_tts
 
     async def speak(
         self,
@@ -139,18 +140,47 @@ class TTSTaskManager:
         """Process TTS generation and queue the result for ordered delivery"""
         audio_file_path = None
         try:
-            audio_file_path = await self._generate_audio(tts_engine, tts_text)
-            payload = prepare_audio_payload(
-                audio_path=audio_file_path,
-                display_text=display_text,
-                actions=actions,
-            )
-            # Queue the payload with its sequence number
-            await self._payload_queue.put((payload, sequence_number))
+            # Determine if streaming should be used (manager flag or engine flag)
+            if (self.stream_tts or getattr(tts_engine, "stream", False)) and hasattr(tts_engine, "async_generate_audio_stream"):
+                # Streaming mode: send chunks directly
+                current_seq = sequence_number
+                async for chunk in tts_engine.async_generate_audio_stream(tts_text):
+                    # forward each partial chunk without writing to disk
+                    payload = prepare_audio_payload(
+                        audio_path=None,
+                        audio_bytes=chunk,
+                        display_text=display_text,
+                        actions=actions,
+                        forwarded=True,
+                    )
+                    # mark this as a streamed chunk
+                    payload["type"] = "tts-audio-chunk"
+                    # Queue each chunk with its sequence index
+                    await self._payload_queue.put((payload, current_seq))
+                    current_seq += 1
+
+                # Send end-of-stream marker so frontend knows streaming is complete
+                eos_payload = {
+                    "type": "tts-audio-chunk",
+                    "audio": "",
+                    "display_text": display_text.to_dict(),
+                    "actions": actions.to_dict() if actions else None,
+                    "eos": True,
+                }
+                await self._payload_queue.put((eos_payload, current_seq))
+
+            else:
+                # Fallback to standard full audio
+                audio_file_path = await self._generate_audio(tts_engine, tts_text)
+                payload = prepare_audio_payload(
+                    audio_path=audio_file_path,
+                    display_text=display_text,
+                    actions=actions,
+                )
+                await self._payload_queue.put((payload, sequence_number))
 
         except Exception as e:
             logger.error(f"Error preparing audio payload: {e}")
-            # Queue silent payload for error case
             payload = prepare_audio_payload(
                 audio_path=None,
                 display_text=display_text,
@@ -159,6 +189,7 @@ class TTSTaskManager:
             await self._payload_queue.put((payload, sequence_number))
 
         finally:
+            # Clean up cache file if created in fallback mode
             if audio_file_path:
                 tts_engine.remove_file(audio_file_path)
                 logger.debug("Audio cache file cleaned.")

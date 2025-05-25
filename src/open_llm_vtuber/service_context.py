@@ -178,10 +178,12 @@ class ServiceContext:
             logger.info(f"Initializing TTS: {tts_config.tts_model}")
             self.tts_engine = TTSFactory.get_tts_engine(
                 tts_config.tts_model,
-                **getattr(tts_config, tts_config.tts_model.lower()).model_dump(),
+                **getattr(tts_config, tts_config.tts_model.lower()).model_dump(), stream=tts_config.stream,
             )
             # saving config should be done after successful initialization
             self.character_config.tts_config = tts_config
+            from .conversations.tts_manager import TTSTaskManager
+            self.tts_task_manager = TTSTaskManager(stream_tts=tts_config.stream)
         else:
             logger.info("TTS already initialized with the same config.")
 

@@ -111,6 +111,9 @@ class WebSocketHandler:
         try:
             session_service_context = await self._init_service_context()
 
+            # so that process_single_conversation can spawn the streaming pump
+            session_service_context.websocket_handler = self
+
             await self._store_client_data(
                 websocket, client_uid, session_service_context
             )
@@ -450,6 +453,8 @@ class WebSocketHandler:
     ) -> None:
         """Handle incoming audio data"""
         audio_data = data.get("audio", [])
+        # Debug: log how many float samples we got from the client
+        logger.debug(f"MIC AUDIO DATA: received {len(audio_data)} frames for {client_uid}")
         if audio_data:
             self.received_data_buffers[client_uid] = np.append(
                 self.received_data_buffers[client_uid],
@@ -462,6 +467,8 @@ class WebSocketHandler:
         """Handle incoming raw audio data for VAD processing"""
         context = self.client_contexts[client_uid]
         chunk = data.get("audio", [])
+        # Debug: log raw audio chunk size
+        logger.debug(f"RAW AUDIO DATA: received {len(chunk)} samples for {client_uid}")
         if chunk:
             for audio_bytes in context.vad_engine.detect_speech(chunk):
                 if audio_bytes == b"<|PAUSE|>":
@@ -471,6 +478,8 @@ class WebSocketHandler:
                 elif audio_bytes == b"<|RESUME|>":
                     pass
                 elif len(audio_bytes) > 1024:
+                    # Debug: VAD triggered speech detection
+                    logger.debug(f"VAD TRIGGER: got {len(audio_bytes)} raw bytes, sending mic-audio-end for {client_uid}")
                     # Detected audio activity (voice)
                     self.received_data_buffers[client_uid] = np.append(
                         self.received_data_buffers[client_uid],
@@ -484,6 +493,7 @@ class WebSocketHandler:
         self, websocket: WebSocket, client_uid: str, data: WSMessage
     ) -> None:
         """Handle triggers that start a conversation"""
+        logger.debug(f"TRIGGER: received {data.get('type')} for {client_uid}")
         await handle_conversation_trigger(
             msg_type=data.get("type", ""),
             data=data,
@@ -551,3 +561,43 @@ class WebSocketHandler:
     ) -> None:
         """Handle group info request"""
         await self.send_group_update(websocket, client_uid)
+
+    async def websocket_send_payload(self, websocket: WebSocket, payload: dict | str) -> None:
+        """
+        Send WebSocket payload to client, handling both dict (new streaming API)
+        and pre-serialized JSON strings (legacy).
+        """
+        # Legacy path: already-serialized JSON
+        if isinstance(payload, str):
+            await websocket.send_text(payload)
+            return
+
+        # New streaming/dict path:
+        msg_type = payload.get("type")
+        if msg_type == "tts-audio-chunk":
+            await websocket.send_text(json.dumps(payload))
+        elif msg_type == "audio":
+            await websocket.send_text(json.dumps(payload))
+        else:
+            # catch-all for control/full-text/etc
+            await websocket.send_text(json.dumps(payload))
+
+    async def stream_audio_to_client(self, websocket: WebSocket, payload_queue: asyncio.Queue) -> None:
+        """
+        Continuously stream audio chunks to client in order.
+        Used by TTSTaskManager for real-time TTS delivery.
+        """
+        buffered_payloads: Dict[int, dict] = {}
+        next_sequence_to_send = 0
+        while True:
+            try:
+                payload, sequence_number = await payload_queue.get()
+                buffered_payloads[sequence_number] = payload
+                # Drain in-sequence packets
+                while next_sequence_to_send in buffered_payloads:
+                    current_payload = buffered_payloads.pop(next_sequence_to_send)
+                    await self.websocket_send_payload(websocket, current_payload)
+                    next_sequence_to_send += 1
+                payload_queue.task_done()
+            except asyncio.CancelledError:
+                break
